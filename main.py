@@ -1,2 +1,1 @@
-print("hola mundo")
-print("david es un australopitecus")
+#se borro todo jaja
