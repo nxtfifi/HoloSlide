@@ -1,2 +1,2 @@
 print("hola mundo")
-print("david es un idiota")
+print("david es un australopitecus")
