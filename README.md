@@ -5,6 +5,7 @@ Para que el codigo funcione a la perfección necesitamos tener instaladas las li
 2. cv zone
 3. numpy
 Podemos instalar estas librerias desde la terminal usando pip.
+
 **pip install opencv-python**
 **pip install cvzone**
 **pip install numpy**
