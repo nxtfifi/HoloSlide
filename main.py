@@ -67,6 +67,13 @@ while True:
             elif dist > 100:  # Si la distancia es grande, estamos separando los dedos (zoom in)
                 zoom_factor += 0.01  # Aumentar el zoom
 
+                
+            # Control de zoom (aumentar o reducir según la distancia)
+            if dist < 50:  # Si la distancia es pequeña, estamos acercando los dedos (zoom out)
+                zoom_factor -= 0.01  # Reducir el zoom
+            elif dist > 100:  # Si la distancia es grande, estamos separando los dedos (zoom in)
+                zoom_factor += 0.01  # Aumentar el zoom
+
             # Limitar el zoom dentro de un rango razonable
             zoom_factor = np.clip(zoom_factor, 0.5, 2.0)
             
