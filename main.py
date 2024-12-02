@@ -51,3 +51,59 @@ while True:
         x_valor = int(np.interp(lista_puntos[8][0], [ancho // 2, ancho], [0, ancho]))
         y_valor = int(np.interp(lista_puntos[8][1], [150, alto - 150], [0, alto]))
         dedo_indice = x_valor, y_valor
+        
+        if cy <= umbral_gesto:  # Si la mano está a la altura de la cara
+            # Gesto 1 - Ir a la diapositiva anterior (pulgar arriba)
+            if dedos_arriba == [1, 0, 0, 0, 0]:
+                print("Ir a la diapositiva anterior")
+                boton_presionado = True
+                if numero_imagen > 0:
+                    numero_imagen -= 1
+                    anotaciones = [[]]
+                    numero_anotacion = -1
+                    inicio_anotacion = False
+
+            # Gesto 2 - Ir a la siguiente diapositiva (meñique arriba)
+            if dedos_arriba == [0, 0, 0, 0, 1]:
+                print("Ir a la siguiente diapositiva")
+                boton_presionado = True
+                if numero_imagen < len(rutas_imagenes) - 1:
+                    numero_imagen += 1
+                    anotaciones = [[]]
+                    numero_anotacion = -1
+                    inicio_anotacion = False
+
+        # Gesto 3 - Mostrar puntero (índice y medio arriba)
+        if dedos_arriba == [0, 1, 1, 0, 0]:
+            cv2.circle(imagen_actual, dedo_indice, 12, (0, 0, 255), cv2.FILLED)
+
+        # Gesto 4 - Dibujar en la diapositiva (solo índice arriba)
+        if dedos_arriba == [0, 1, 0, 0, 0]:
+            if not inicio_anotacion:
+                inicio_anotacion = True
+                numero_anotacion += 1
+                anotaciones.append([])
+            anotaciones[numero_anotacion].append(dedo_indice)
+            cv2.circle(imagen_actual, dedo_indice, 12, (0, 0, 255), cv2.FILLED)
+
+        # Gesto 5 - Borrar anotaciones (todos los dedos arriba menos el pulgar)
+        if dedos_arriba == [0, 1, 1, 1, 1]:
+            if anotaciones:
+                anotaciones.pop(-1)
+                numero_anotacion -= 1
+                boton_presionado = True
+
+    if boton_presionado:  # Control del retraso
+        contador += 1
+        if contador > retraso:
+            contador = 0
+            boton_presionado = False
+
+    # Dibujar anotaciones en la diapositiva actual
+    for i, anotacion in enumerate(anotaciones):
+        for j in range(len(anotacion)):
+            if j != 0:
+                cv2.line(imagen_actual, anotacion[j - 1], anotacion[j], (0, 0, 200), 12)
+                
+
+
