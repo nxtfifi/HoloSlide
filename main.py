@@ -1,133 +1,130 @@
-#librerias
-from cvzone .HandTrackingModule import HandDetector
 import cv2
-import os
 import numpy as np
+import pyautogui
+from cvzone.HandTrackingModule import HandDetector
+import time
 
-#Parmetros iniciales
-ancho, alto=1280,720 #Resolución de la pantalla
-umbral_gesto=360 #Linea para detectar los gestos
-carpeta_presentacion="presentation" #Es la carpeta donde estaran los png
+# Obtener la resolución de la pantalla
+pantalla_ancho, pantalla_alto = pyautogui.size()
+
+# Ajustar resolución de la presentación al 80% del tamaño de la pantalla
+ancho, alto = int(pantalla_ancho * 0.8), int(pantalla_alto * 0.9)
+
+# Parámetros iniciales
+umbral_gesto = 360  # Línea para detectar los gestos
 zoom_factor = 1.0  # Factor de zoom inicial
+retraso = 30  # Retraso para evitar cambios rápidos de diapositiva
+ultimo_zoom = time.time()  # Para controlar el tiempo de zoom
+zoom_activado = False
 
-camara=cv2.VideoCapture(0)
-camara.set(3,ancho) #Ancho del cuadro
-camara.set(4,alto) #Alto del cuadro
-detector_manos=HandDetector(detectionCon=0.8,maxHands=1)
+# Inicializar la cámara
+camara = cv2.VideoCapture(0)
+camara.set(3, ancho)  # Ancho del cuadro
+camara.set(4, alto)  # Alto del cuadro
+detector_manos = HandDetector(detectionCon=0.8, maxHands=2) # Detectar hasta 2 manos
 
-lista_imagenes=[]
-retraso=30
-boton_presionado=False
-contador=0
-modo_dibujo=False
-numero_imagen=0
-contador_retraso=0
-anotaciones=[[]] #Lista para guardas anotaciones
-numero_anotacion=-1 #Indice de anotacion actual
-inicio_anotacion=False
-alto_pequena, ancho_pequena=int(120*1),int(213*1) #Dimensiones de la vista previa
+# Variables para controlar la transición de diapositivas
+boton_presionado = False
+contador = 0
+ultimo_cambio = time.time()  # Para evitar cambios rápidos de diapositivas
+alto_pequena, ancho_pequena = int(120 * 1), int(213 * 1)  # Dimensiones de la vista previa
 
-#lista imagenes
-rutas_imagenes=sorted(os.listdir(carpeta_presentacion),key=len)
-print(rutas_imagenes)
-
+# Bucle principal
 while True:
-    # Capturar cuadro de la cámara
+    # Captura de la cámara
     exito, imagen = camara.read()
     imagen = cv2.flip(imagen, 1)  # Voltear la imagen horizontalmente para reflejo natural
-    ruta_imagen_actual = os.path.join(carpeta_presentacion, rutas_imagenes[numero_imagen])
-    imagen_actual = cv2.imread(ruta_imagen_actual)
 
     # Detectar manos
     manos, imagen = detector_manos.findHands(imagen)  # Detecta y dibuja las manos
     cv2.line(imagen, (0, umbral_gesto), (ancho, umbral_gesto), (0, 255, 0), 10)  # Línea de umbral
 
-    if manos and not boton_presionado:  # Si se detecta una mano y no hay botón activo
-        mano = manos[0]  # Usar la primera mano detectada
-        cx, cy = mano["center"]  # Centro de la mano
-        lista_puntos = mano["lmList"]  # Lista de puntos clave
-        dedos_arriba = detector_manos.fingersUp(mano)  # Dedos levantados
+    if manos:
+        mano_izquierda = None
+        mano_derecha = None
 
-        # Coordenadas del índice para anotaciones
-        x_valor = int(np.interp(lista_puntos[8][0], [ancho // 2, ancho], [0, ancho]))
-        y_valor = int(np.interp(lista_puntos[8][1], [150, alto - 150], [0, alto]))
-        dedo_indice = x_valor, y_valor
+        # Dividir las manos si hay más de una
+        if len(manos) == 2:
+            mano_izquierda, mano_derecha = manos
 
-         # Calcular distancia entre el pulgar (punto 4) y el índice (punto 8)
-        if len(lista_puntos) > 8:  # Si se han detectado al menos 9 puntos (pulgar e índice)
-            dist = np.linalg.norm(np.array(lista_puntos[4]) - np.array(lista_puntos[8]))  # Distancia Euclidiana entre el pulgar y el índice
+        # Si solo hay una mano, usar esa mano
+        if len(manos) == 1:
+            mano_derecha = manos[0]
 
-            # Control de zoom (aumentar o reducir según la distancia)
-            if dist < 50:  # Si la distancia es pequeña, estamos acercando los dedos (zoom out)
-                zoom_factor -= 0.01  # Reducir el zoom
-            elif dist > 100:  # Si la distancia es grande, estamos separando los dedos (zoom in)
-                zoom_factor += 0.01  # Aumentar el zoom
+        # Obtener las coordenadas del índice de la mano derecha (o la única)
+        if mano_derecha:
+            lista_puntos = mano_derecha["lmList"]  # Lista de puntos clave
+            dedos_arriba = detector_manos.fingersUp(mano_derecha)  # Dedos levantados
+            x_valor = int(np.interp(lista_puntos[8][0], [0, ancho], [0, pantalla_ancho]))
+            y_valor = int(np.interp(lista_puntos[8][1], [150, alto - 150], [0, pantalla_alto]))
+            dedo_indice = x_valor, y_valor
 
-            # Limitar el zoom dentro de un rango razonable
-            zoom_factor = np.clip(zoom_factor, 0.5, 2.0)
-            
-        if cy <= umbral_gesto:  # Si la mano está a la altura de la cara
-            # Gesto 1 - Ir a la diapositiva anterior (pulgar arriba)
+            # Mover el cursor con el índice de la mano detectada
+            pyautogui.moveTo(x_valor, y_valor)
+
+            # Gesto 1: Ir a la diapositiva anterior (pulgar arriba)
             if dedos_arriba == [1, 0, 0, 0, 0]:
-                print("Ir a la diapositiva anterior")
-                boton_presionado = True
-                if numero_imagen > 0:
-                    numero_imagen -= 1
-                    anotaciones = [[]]
-                    numero_anotacion = -1
-                    inicio_anotacion = False
+                if time.time() - ultimo_cambio > retraso / 10:  # Control de tiempo para evitar cambios rápidos
+                    print("Ir a la diapositiva anterior")
+                    pyautogui.press('left')  # Comando para retroceder la diapositiva
+                    boton_presionado = True
+                    ultimo_cambio = time.time()
 
-            # Gesto 2 - Ir a la siguiente diapositiva (meñique arriba)
+            # Gesto 2: Ir a la siguiente diapositiva (meñique arriba)
             if dedos_arriba == [0, 0, 0, 0, 1]:
-                print("Ir a la siguiente diapositiva")
-                boton_presionado = True
-                if numero_imagen < len(rutas_imagenes) - 1:
-                    numero_imagen += 1
-                    anotaciones = [[]]
-                    numero_anotacion = -1
-                    inicio_anotacion = False
+                if time.time() - ultimo_cambio > retraso / 10:  # Control de tiempo para evitar cambios rápidos
+                    print("Ir a la siguiente diapositiva")
+                    pyautogui.press('right')  # Comando para avanzar la diapositiva
+                    boton_presionado = True
+                    ultimo_cambio = time.time()
 
-        # Gesto 3 - Mostrar puntero (índice y medio arriba)
-        if dedos_arriba == [0, 1, 1, 0, 0]:
-            cv2.circle(imagen_actual, dedo_indice, 12, (0, 0, 255), cv2.FILLED)
+            # Gesto 3: Mostrar puntero (solo índice arriba)
+            if dedos_arriba == [0, 1, 0, 0, 0]:
+                cv2.circle(imagen, dedo_indice, 12, (0, 0, 255), cv2.FILLED)
 
-        # Gesto 4 - Dibujar en la diapositiva (solo índice arriba)
-        if dedos_arriba == [0, 1, 0, 0, 0]:
-            if not inicio_anotacion:
-                inicio_anotacion = True
-                numero_anotacion += 1
-                anotaciones.append([])
-            anotaciones[numero_anotacion].append(dedo_indice)
-            cv2.circle(imagen_actual, dedo_indice, 12, (0, 0, 255), cv2.FILLED)
+            # Gesto 4: Dibujar en la diapositiva (índice y medio arriba)
+            #if dedos_arriba == [0, 1, 1, 0, 0]:
+                # Dibujar en PowerPoint (simulación)
+             #   pyautogui.click(button='left')  # Simula un clic para dibujar
+              #  cv2.circle(imagen, dedo_indice, 12, (0, 255, 0), cv2.FILLED)
 
-        # Gesto 5 - Borrar anotaciones (todos los dedos arriba menos el pulgar)
-        if dedos_arriba == [0, 1, 1, 1, 1]:
-            if anotaciones:
-                anotaciones.pop(-1)
-                numero_anotacion -= 1
-                boton_presionado = True
+            # Gesto 5: Deshacer anotaciones (todos los dedos arriba menos el pulgar)
+            if dedos_arriba == [0, 1, 1, 1, 1]:
+                # Eliminar anotaciones o deshacer acciones
+                pass
 
-    if boton_presionado:  # Control del retraso
-        contador += 1
-        if contador > retraso:
-            contador = 0
-            boton_presionado = False
+            # Gesto 6: Zoom (Pulgar e índice juntos para acercar)
+        if mano_derecha:
+            if dedos_arriba == [1, 0, 0, 0, 1]:
+                distancia = np.linalg.norm(np.array(lista_puntos[8]) - np.array(lista_puntos[4]))  # Distancia entre pulgar e índice
+                zoom_factor = np.clip(1.0 + (distancia / 100), 0.5, 2.0)
 
-    #Aplicar el zoom a la imagen
-    imagen_actual_zoom = cv2.resize(imagen_actual, None, fx=zoom_factor, fy=zoom_factor)
+                if time.time() - ultimo_zoom > 0.5:  # Control para aplicar el zoom con un pequeño retraso
+                    if zoom_factor > 1.2 and not zoom_activado:
+                        pyautogui.hotkey('ctrl', '+')  # Comando de zoom in
+                        zoom_activado = True
+                    elif zoom_factor < 0.8 and zoom_activado:
+                        pyautogui.hotkey('ctrl', '-')  # Comando de zoom out
+                        zoom_activado = False
+                    ultimo_zoom = time.time()
 
-    # Dibujar anotaciones en la diapositiva actual
-    for i, anotacion in enumerate(anotaciones):
-        for j in range(len(anotacion)):
-            if j != 0:
-                cv2.line(imagen_actual, anotacion[j - 1], anotacion[j], (0, 0, 200), 12)
+        # Gesto 7: Zoom Out con el índice de ambas manos levantados al mismo tiempo
+        if mano_izquierda and mano_derecha:
+            lista_puntos_izq = mano_izquierda["lmList"]
+            dedos_arriba_izq = detector_manos.fingersUp(mano_izquierda)
+            if dedos_arriba_izq == [0, 1, 0, 0, 0] and dedos_arriba == [0, 1, 0, 0, 0]:
+                # Si ambos índices están levantados, hacer zoom out
+                if time.time() - ultimo_zoom > 0.5:  # Para evitar aplicar el zoom repetidamente
+                    pyautogui.hotkey('ctrl', '-')  # Comando de zoom out
+                    zoom_activado = False
+                    ultimo_zoom = time.time()
+                    
     # Mostrar vista previa de la cámara
     imagen_pequena = cv2.resize(imagen, (ancho_pequena, alto_pequena))
-    h, w, _ = imagen_actual.shape
-    imagen_actual[0:alto_pequena, w - ancho_pequena: w] = imagen_pequena
+    h, w, _ = imagen.shape
+    imagen[0:alto_pequena, w - ancho_pequena: w] = imagen_pequena
 
-    # Mostrar ventanas
-    cv2.imshow("Presentación", imagen_actual)
+    # Mostrar la cámara en la ventana
     cv2.imshow("Cámara", imagen)
 
     # Salir si se presiona 'q'
@@ -138,5 +135,6 @@ while True:
 # Liberar recursos
 camara.release()
 cv2.destroyAllWindows()
+
 
 
