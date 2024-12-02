@@ -57,10 +57,6 @@ while True:
         if len(lista_puntos) > 8:  # Si se han detectado al menos 9 puntos (pulgar e índice)
             dist = np.linalg.norm(np.array(lista_puntos[4]) - np.array(lista_puntos[8]))  # Distancia Euclidiana entre el pulgar y el índice
 
-        # Calcular distancia entre el pulgar (punto 4) y el índice (punto 8)
-        if len(lista_puntos) > 8:  # Si se han detectado al menos 9 puntos (pulgar e índice)
-            dist = np.linalg.norm(np.array(lista_puntos[4]) - np.array(lista_puntos[8]))  # Distancia Euclidiana entre el pulgar y el índice
-
             # Control de zoom (aumentar o reducir según la distancia)
             if dist < 50:  # Si la distancia es pequeña, estamos acercando los dedos (zoom out)
                 zoom_factor -= 0.01  # Reducir el zoom
@@ -116,7 +112,7 @@ while True:
         if contador > retraso:
             contador = 0
             boton_presionado = False
-            
+
     #Aplicar el zoom a la imagen
     imagen_actual_zoom = cv2.resize(imagen_actual, None, fx=zoom_factor, fy=zoom_factor)
 
