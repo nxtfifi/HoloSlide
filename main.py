@@ -8,6 +8,7 @@ import numpy as np
 ancho, alto=1280,720 #Resolución de la pantalla
 umbral_gesto=360 #Linea para detectar los gestos
 carpeta_presentacion="presentation" #Es la carpeta donde estaran los png
+zoom_factor = 1.0  # Factor de zoom inicial
 
 camara=cv2.VideoCapture(0)
 camara.set(3,ancho) #Ancho del cuadro
@@ -51,7 +52,24 @@ while True:
         x_valor = int(np.interp(lista_puntos[8][0], [ancho // 2, ancho], [0, ancho]))
         y_valor = int(np.interp(lista_puntos[8][1], [150, alto - 150], [0, alto]))
         dedo_indice = x_valor, y_valor
-        
+
+         # Calcular distancia entre el pulgar (punto 4) y el índice (punto 8)
+        if len(lista_puntos) > 8:  # Si se han detectado al menos 9 puntos (pulgar e índice)
+            dist = np.linalg.norm(np.array(lista_puntos[4]) - np.array(lista_puntos[8]))  # Distancia Euclidiana entre el pulgar y el índice
+
+        # Calcular distancia entre el pulgar (punto 4) y el índice (punto 8)
+        if len(lista_puntos) > 8:  # Si se han detectado al menos 9 puntos (pulgar e índice)
+            dist = np.linalg.norm(np.array(lista_puntos[4]) - np.array(lista_puntos[8]))  # Distancia Euclidiana entre el pulgar y el índice
+
+            # Control de zoom (aumentar o reducir según la distancia)
+            if dist < 50:  # Si la distancia es pequeña, estamos acercando los dedos (zoom out)
+                zoom_factor -= 0.01  # Reducir el zoom
+            elif dist > 100:  # Si la distancia es grande, estamos separando los dedos (zoom in)
+                zoom_factor += 0.01  # Aumentar el zoom
+
+            # Limitar el zoom dentro de un rango razonable
+            zoom_factor = np.clip(zoom_factor, 0.5, 2.0)
+            
         if cy <= umbral_gesto:  # Si la mano está a la altura de la cara
             # Gesto 1 - Ir a la diapositiva anterior (pulgar arriba)
             if dedos_arriba == [1, 0, 0, 0, 0]:
@@ -98,6 +116,8 @@ while True:
         if contador > retraso:
             contador = 0
             boton_presionado = False
+    #Aplicar el zoom a la imagen
+    imagen_actual_zoom = cv2.resize(imagen_actual, None, fx=zoom_factor, fy=zoom_factor)
 
     # Dibujar anotaciones en la diapositiva actual
     for i, anotacion in enumerate(anotaciones):
