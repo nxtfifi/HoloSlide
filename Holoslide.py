@@ -4,18 +4,6 @@ import cv2
 import os
 import numpy as np
 import pyautogui
-def aplicar_zoom(imagen, nivel_zoom):
-    # Redimensionar la imagen según el nivel de zoom
-    altura, ancho = imagen.shape[:2]
-    nueva_altura = int(altura * nivel_zoom)
-    nuevo_ancho = int(ancho * nivel_zoom)
-    
-    # Centrar el zoom (opcional, para evitar desplazamientos)
-    imagen_zoom = cv2.resize(imagen, (nuevo_ancho, nueva_altura), interpolation=cv2.INTER_LINEAR)
-    
-    # Muestra la imagen en la ventana o actualiza su contenido
-    cv2.imshow("Imagen con Zoom", imagen_zoom)
-
 # Obtener la resolución de la pantalla
 pantalla_ancho, pantalla_alto = pyautogui.size()
 
@@ -33,11 +21,6 @@ camara.set(3,ancho) #Ancho del cuadro
 camara.set(4,alto) #Alto del cuadro
 detector_manos=HandDetector(detectionCon=0.8,maxHands=1)
 
-#-----
-nivel_zoom = 1  # Nivel de zoom inicial
-max_zoom = 3  # Zoom máximo (3x)
-min_zoom = 0.5  # Zoom mínimo (0.5x)
-#-----
 
 lista_imagenes=[]
 retraso=30
