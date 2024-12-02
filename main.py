@@ -26,3 +26,7 @@ numero_anotacion=-1 #Indice de anotacion actual
 inicio_anotacion=False
 alto_pequena, ancho_pequena=int(120*1),int(213*1) #Dimensiones de la vista previa
 
+#lista imagenes
+rutas_imagenes=sorted(os.listdir(carpeta_presentacion),key=len)
+print(rutas_imagenes)
+
