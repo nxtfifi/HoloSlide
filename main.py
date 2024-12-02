@@ -104,6 +104,22 @@ while True:
         for j in range(len(anotacion)):
             if j != 0:
                 cv2.line(imagen_actual, anotacion[j - 1], anotacion[j], (0, 0, 200), 12)
-                
+    # Mostrar vista previa de la cámara
+    imagen_pequena = cv2.resize(imagen, (ancho_pequena, alto_pequena))
+    h, w, _ = imagen_actual.shape
+    imagen_actual[0:alto_pequena, w - ancho_pequena: w] = imagen_pequena
+
+    # Mostrar ventanas
+    cv2.imshow("Presentación", imagen_actual)
+    cv2.imshow("Cámara", imagen)
+
+    # Salir si se presiona 'q'
+    tecla = cv2.waitKey(1)
+    if tecla == ord('q'):
+        break
+
+# Liberar recursos
+camara.release()
+cv2.destroyAllWindows()
 
 
